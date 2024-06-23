@@ -211,6 +211,39 @@ bool is_square_attacked(int i, int j, int side){
         if(!side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == K) return 1;
         if(side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == k) return 1;
     }
+
+    // Bishop & Queen Attacks
+    for(int ind=0;ind<4;ind++){
+        int tarx = i + bishop_offsets[ind][0], tary = j + bishop_offsets[ind][1];
+        while(valid_move(tarx,tary)){
+            // Check for bishop or queen
+            if(!side && (chess_board[tarx][tary] == B || chess_board[tarx][tary] == Q)) return 1;
+            if(side && (chess_board[tarx][tary] == b || chess_board[tarx][tary] == q)) return 1;
+
+            // Break if any piece comes in between
+            if(chess_board[tarx][tary] != e) break;
+
+            tarx = tarx + bishop_offsets[ind][0];
+            tary = tary + bishop_offsets[ind][1];
+        }
+    }
+
+    // Rook & Queen Attacks
+    for(int ind=0;ind<4;ind++){
+        int tarx = i + rook_offsets[ind][0], tary = j + rook_offsets[ind][1];
+        while(valid_move(tarx,tary)){
+            // Check for rook or queen
+            if(!side && (chess_board[tarx][tary] == R || chess_board[tarx][tary] == Q)) return 1;
+            if(side && (chess_board[tarx][tary] == r || chess_board[tarx][tary] == q)) return 1;
+
+            // Break if any piece comes in between
+            if(chess_board[tarx][tary] != e) break;
+
+            tarx = tarx + rook_offsets[ind][0];
+            tary = tary + rook_offsets[ind][1];
+        }
+    }
+
     return 0;
 }
 
@@ -232,7 +265,7 @@ void print_attacked_squares(){
     cout << "\n   a b c d e f g h \n" << endl;
 }
 
-string test_position = "k7/4p3/8/2N5/8/5P2/6K1/8 w KQkq - 0 1";
+string test_position = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
 
 int main() {
     // Your code here
