@@ -183,6 +183,7 @@ void clear_board(){
     castle = 0;
 }
 
+// Check if square is attacked
 bool is_square_attacked(int i, int j, int side){
     // Pawn Attacks
     if(!side){
@@ -247,7 +248,8 @@ bool is_square_attacked(int i, int j, int side){
     return 0;
 }
 
-void print_attacked_squares(){
+// Print all Attacked Squares
+void print_attacked_squares(int side){
     cout<<"\n\n";
     for(int i=0;i<8;i++){
         for(int j=0;j<8;j++){
@@ -255,7 +257,7 @@ void print_attacked_squares(){
             // Printing ranks 1,2,....8
             if(j == 0) cout << 8-i << "  ";
 
-            if(is_square_attacked(i,j,side_to_move)) cout << "x ";
+            if(is_square_attacked(i,j,side)) cout << "x ";
             else cout << ". ";
 
         }
@@ -263,6 +265,118 @@ void print_attacked_squares(){
     }
     // Printing file a,b....h
     cout << "\n   a b c d e f g h \n" << endl;
+}
+
+// Generate Pawn Moves
+void generate_pawn_moves(int side){
+    for(int i=0;i<8;i++){
+        for(int j=0;j<8;j++){
+
+            // White Pawn Moves
+            if(!side && chess_board[i][j] == P){
+                // Single Move
+                if(valid_move(i-1,j) && chess_board[i-1][j] == e){
+                    // Promotion
+                    if(i == 1){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " Q" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " R" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " B" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " N" << endl;
+                    }
+                    // Normal Move
+                    else{
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << endl;
+                    }
+                }
+
+                // Double Move
+                if(i == 6 && chess_board[i-1][j] == e && chess_board[i-2][j] == e){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[i-2][j] << endl;
+                }
+
+                // Capture Move
+                // Normal Captures
+                if(i>1 && valid_move(i-1,j-1) && chess_board[i-1][j-1] >= p && chess_board[i-1][j-1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << endl;
+                }
+                if(i>1 && valid_move(i-1,j+1) && chess_board[i-1][j+1] >= p && chess_board[i-1][j+1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << endl;
+                }
+                // Capture En-passant
+                if(valid_move(i-1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " En-passant" << endl;
+                }
+                if(valid_move(i-1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " En-passant" << endl;
+                }
+                // Capture Promotion
+                if(i==1 && valid_move(i-1,j-1) && chess_board[i-1][j-1] >= p && chess_board[i-1][j-1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " Q" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " R" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " B" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " N" << endl;
+                }
+                if(i==1 && valid_move(i-1,j+1) && chess_board[i-1][j+1] >= p && chess_board[i-1][j+1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " Q" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " R" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " B" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " N" << endl;
+                }
+            }
+
+            // Black Pawn Moves
+            if(side && chess_board[i][j] == p){
+                // Single Move
+                if(valid_move(i+1,j) && chess_board[i+1][j] == e){
+                    // Promotion
+                    if(i == 1){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " q" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " r" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " b" << endl;
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " n" << endl;
+                    }
+                    else{
+                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << endl;
+                    }
+                }
+
+                // Double Move
+                if(i == 6 && chess_board[i+1][j] == e && chess_board[i+2][j] == e){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[i+2][j] << endl;
+                }
+
+                // Capture Move
+                // Normal Captures
+                if(i<6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= P && chess_board[i+1][j-1] <= K){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << endl;
+                }
+                if(i<6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= P && chess_board[i+1][j+1] <= K){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << endl;
+                }
+                // Capture En-passant
+                if(valid_move(i+1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " En-passant" << endl;
+                }
+                if(valid_move(i+1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " En-passant" << endl;
+                }
+                // Capture Promotion
+                if(i==6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= p && chess_board[i+1][j-1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " q" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " r" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " b" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " n" << endl;
+                }
+                if(i==6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= p && chess_board[i+1][j+1] <= k){
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " q" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " r" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " b" << endl;
+                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " n" << endl;
+                }
+            }
+
+        }
+    }
 }
 
 string test_position = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
@@ -274,9 +388,10 @@ int main() {
     // chess_board[e4/16][e4%16] = P;
     
     clear_board();
-    parse_fen_string_to_board(test_position);
+    parse_fen_string_to_board(random_position);
     print_chess_board();
-    print_attacked_squares();
+    // print_attacked_squares(side_to_move);
+    generate_pawn_moves(side_to_move);
 
     // TODO: Remove this later
     // for(int i=0;i<8;i++){
