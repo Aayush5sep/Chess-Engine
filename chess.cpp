@@ -81,6 +81,17 @@ int castle = 0;
 // En-passant square
 int enpassant = no_sq;
 
+// Piece Moves
+int knight_moves[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{-1,2},{1,-2},{-1,-2}};
+int bishop_offsets[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
+int rook_offsets[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+int king_moves[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+
+// Check if square is on board
+bool valid_move(int i, int j){
+    return i >=0 && i < 8 && j >=0 && j < 8;
+}
+
 // FEN String parsing
 string starting_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 string random_position = "r2qk2r/pp1b1pp1/2nppn1p/3p4/3P4/2NBPN2/PPPQ1PPP/R3K2R w KQkq h2 0 9";
@@ -172,7 +183,56 @@ void clear_board(){
     castle = 0;
 }
 
-string test_position = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
+bool is_square_attacked(int i, int j, int side){
+    // Pawn Attacks
+    if(!side){
+        if(valid_move(i+1,j-1) && chess_board[i+1][j-1] == P) return 1;
+        if(valid_move(i+1,j+1) && chess_board[i+1][j+1] == P) return 1;
+    }
+    else{
+        if(valid_move(i-1,j-1) && chess_board[i-1][j-1] == p) return 1;
+        if(valid_move(i-1,j+1) && chess_board[i-1][j+1] == p) return 1;
+    }
+
+    // Knight Attacks
+    for(int ind=0;ind<8;ind++){
+        int x = knight_moves[ind][0];
+        int y = knight_moves[ind][1];
+
+        if(!side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == N) return 1;
+        if(side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == n) return 1;
+    }
+
+    // King Attacks
+    for(int ind=0;ind<8;ind++){
+        int x = king_moves[ind][0];
+        int y = king_moves[ind][1];
+
+        if(!side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == K) return 1;
+        if(side && valid_move(i+x,j+y) && chess_board[i+x][j+y] == k) return 1;
+    }
+    return 0;
+}
+
+void print_attacked_squares(){
+    cout<<"\n\n";
+    for(int i=0;i<8;i++){
+        for(int j=0;j<8;j++){
+
+            // Printing ranks 1,2,....8
+            if(j == 0) cout << 8-i << "  ";
+
+            if(is_square_attacked(i,j,side_to_move)) cout << "x ";
+            else cout << ". ";
+
+        }
+        cout<<endl;
+    }
+    // Printing file a,b....h
+    cout << "\n   a b c d e f g h \n" << endl;
+}
+
+string test_position = "k7/4p3/8/2N5/8/5P2/6K1/8 w KQkq - 0 1";
 
 int main() {
     // Your code here
@@ -183,6 +243,7 @@ int main() {
     clear_board();
     parse_fen_string_to_board(test_position);
     print_chess_board();
+    print_attacked_squares();
 
     // TODO: Remove this later
     // for(int i=0;i<8;i++){
