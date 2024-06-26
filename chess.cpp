@@ -329,7 +329,7 @@ void generate_pawn_moves(int side){
                 // Single Move
                 if(valid_move(i+1,j) && chess_board[i+1][j] == e){
                     // Promotion
-                    if(i == 1){
+                    if(i == 6){
                         cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " q" << endl;
                         cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " r" << endl;
                         cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " b" << endl;
@@ -341,7 +341,7 @@ void generate_pawn_moves(int side){
                 }
 
                 // Double Move
-                if(i == 6 && chess_board[i+1][j] == e && chess_board[i+2][j] == e){
+                if(i == 1 && chess_board[i+1][j] == e && chess_board[i+2][j] == e){
                     cout << index_to_position[i][j] << " -> " << index_to_position[i+2][j] << endl;
                 }
 
