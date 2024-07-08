@@ -449,7 +449,7 @@ void generate_moves(int side){
             }
 
             // Black Knight Moves
-            else if(!side && chess_board[i][j] == n){
+            else if(side && chess_board[i][j] == n){
                 for(int ind=0;ind<8;ind++){
                     int tarx = i + knight_moves[ind][0];
                     int tary = j + knight_moves[ind][1];
