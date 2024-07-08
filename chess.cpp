@@ -389,6 +389,20 @@ void generate_moves(int side){
                 if((castle & Qc) && chess_board[7][1] == e && chess_board[7][2] == e && chess_board[7][3] == e && !is_square_attacked(7,4,!side) && !is_square_attacked(7,3,!side) && !is_square_attacked(7,2,!side)){
                     cout << index_to_position[i][j] << " -> " << index_to_position[7][2] << endl;
                 }
+                // Non-Castling King Moves
+                for(int ind=0;ind<8;ind++){
+                    int tarx = i + king_moves[ind][0];
+                    int tary = j + king_moves[ind][1];
+
+                    // Normal Moves
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] == e){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                    }
+                    // Capture Moves
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
+                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                    }
+                }
             }
 
             // Black Side King Castling
@@ -400,6 +414,54 @@ void generate_moves(int side){
                 // Queen Side Castling
                 if((castle & qc) && chess_board[0][1] == e && chess_board[0][2] == e && chess_board[0][3] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,3,side) && !is_square_attacked(0,2,side)){
                     cout << index_to_position[i][j] << " -> " << index_to_position[0][2] << endl;
+                }
+                // Non-Castling King Moves
+                for(int ind=0;ind<8;ind++){
+                    int tarx = i + king_moves[ind][0];
+                    int tary = j + king_moves[ind][1];
+
+                    // Normal Moves
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] == e){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                    }
+                    // Capture Moves
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
+                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                    }
+                }
+            }
+
+            // White Knight Moves
+            else if(!side && chess_board[i][j] == N){
+                for(int ind=0;ind<8;ind++){
+                    int tarx = i + knight_moves[ind][0];
+                    int tary = j + knight_moves[ind][1];
+
+                    // Normal Moves
+                    if(valid_move(tarx,tary) && chess_board[tarx][tary] == e){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                    }
+                    // Capture Moves
+                    if(valid_move(tarx,tary) && chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
+                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                    }
+                }
+            }
+
+            // Black Knight Moves
+            else if(!side && chess_board[i][j] == n){
+                for(int ind=0;ind<8;ind++){
+                    int tarx = i + knight_moves[ind][0];
+                    int tary = j + knight_moves[ind][1];
+
+                    // Normal Moves
+                    if(valid_move(tarx,tary) && chess_board[tarx][tary] == e){
+                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                    }
+                    // Capture Moves
+                    if(valid_move(tarx,tary) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
+                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                    }
                 }
             }
 
