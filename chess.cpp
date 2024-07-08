@@ -465,6 +465,102 @@ void generate_moves(int side){
                 }
             }
 
+            // White Bishop & Queen Moves
+            if(!side && (chess_board[i][j] == B || chess_board[i][j] == Q)){
+                for(int ind=0;ind<4;ind++){
+                    int tarx = i + bishop_offsets[ind][0];
+                    int tary = j + bishop_offsets[ind][1];
+                    while(valid_move(tarx,tary)){
+                        // Normal Moves
+                        if(chess_board[tarx][tary] == e){
+                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        }
+                        // Capture Moves
+                        if(chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
+                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            break;
+                        }
+                        // Break if any there is any chess piece in between
+                        if(chess_board[tarx][tary] != e) break;
+
+                        tarx = tarx + bishop_offsets[ind][0];
+                        tary = tary + bishop_offsets[ind][1];
+                    }
+                }
+            }
+
+            // Black Bishop & Queen Moves
+            else if(side && (chess_board[i][j] == b || chess_board[i][j] == q)){
+                for(int ind=0;ind<4;ind++){
+                    int tarx = i + bishop_offsets[ind][0];
+                    int tary = j + bishop_offsets[ind][1];
+                    while(valid_move(tarx,tary)){
+                        // Normal Moves
+                        if(chess_board[tarx][tary] == e){
+                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        }
+                        // Capture Moves
+                        if(chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
+                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            break;
+                        }
+                        // Break if any there is any chess piece in between
+                        if(chess_board[tarx][tary] != e) break;
+
+                        tarx = tarx + bishop_offsets[ind][0];
+                        tary = tary + bishop_offsets[ind][1];
+                    }
+                }
+            }
+
+            // White Rook & Queen Moves
+            if(!side && (chess_board[i][j] == R || chess_board[i][j] == Q)){
+                for(int ind=0;ind<4;ind++){
+                    int tarx = i + rook_offsets[ind][0];
+                    int tary = j + rook_offsets[ind][1];
+                    while(valid_move(tarx,tary)){
+                        // Normal Moves
+                        if(chess_board[tarx][tary] == e){
+                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        }
+                        // Capture Moves
+                        if(chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
+                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            break;
+                        }
+                        // Break if any there is any chess piece in between
+                        if(chess_board[tarx][tary] != e) break;
+
+                        tarx = tarx + rook_offsets[ind][0];
+                        tary = tary + rook_offsets[ind][1];
+                    }
+                }
+            }
+
+            // Black Rook & Queen Moves
+            else if(side && (chess_board[i][j] == r || chess_board[i][j] == q)){
+                for(int ind=0;ind<4;ind++){
+                    int tarx = i + rook_offsets[ind][0];
+                    int tary = j + rook_offsets[ind][1];
+                    while(valid_move(tarx,tary)){
+                        // Normal Moves
+                        if(chess_board[tarx][tary] == e){
+                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        }
+                        // Capture Moves
+                        if(chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
+                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            break;
+                        }
+                        // Break if any there is any chess piece in between
+                        if(chess_board[tarx][tary] != e) break;
+
+                        tarx = tarx + rook_offsets[ind][0];
+                        tary = tary + rook_offsets[ind][1];
+                    }
+                }
+            }
+
         }
     }
 }
