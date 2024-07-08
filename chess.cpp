@@ -267,8 +267,8 @@ void print_attacked_squares(int side){
     cout << "\n   a b c d e f g h \n" << endl;
 }
 
-// Generate Pawn Moves
-void generate_pawn_moves(int side){
+// Generate Moves
+void generate_moves(int side){
     for(int i=0;i<8;i++){
         for(int j=0;j<8;j++){
 
@@ -325,7 +325,7 @@ void generate_pawn_moves(int side){
             }
 
             // Black Pawn Moves
-            if(side && chess_board[i][j] == p){
+            else if(side && chess_board[i][j] == p){
                 // Single Move
                 if(valid_move(i+1,j) && chess_board[i+1][j] == e){
                     // Promotion
@@ -375,6 +375,34 @@ void generate_pawn_moves(int side){
                 }
             }
 
+            // White Side King Castling
+            else if(!side && chess_board[i][j] == K){
+                // Check if castling option is available
+                // Check for empty squares between king and rook
+                // Check squares for king movement are not attacked
+                
+                // King Side Castling
+                if((castle & Kc) && chess_board[7][5] == e && chess_board[7][6] == e && !is_square_attacked(7,4,!side) && !is_square_attacked(7,5,!side) && !is_square_attacked(7,6,!side)){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[7][6] << endl;
+                }
+                // Queen Side Castling
+                if((castle & Qc) && chess_board[7][1] == e && chess_board[7][2] == e && chess_board[7][3] == e && !is_square_attacked(7,4,!side) && !is_square_attacked(7,3,!side) && !is_square_attacked(7,2,!side)){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[7][2] << endl;
+                }
+            }
+
+            // Black Side King Castling
+            else if(side && chess_board[i][j] == k){
+                // King Side Castling
+                if((castle & kc) && chess_board[0][5] == e && chess_board[0][6] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,5,side) && !is_square_attacked(0,6,side)){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[0][6] << endl;
+                }
+                // Queen Side Castling
+                if((castle & qc) && chess_board[0][1] == e && chess_board[0][2] == e && chess_board[0][3] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,3,side) && !is_square_attacked(0,2,side)){
+                    cout << index_to_position[i][j] << " -> " << index_to_position[0][2] << endl;
+                }
+            }
+
         }
     }
 }
@@ -391,7 +419,7 @@ int main() {
     parse_fen_string_to_board(random_position);
     print_chess_board();
     // print_attacked_squares(side_to_move);
-    generate_pawn_moves(side_to_move);
+    generate_moves(side_to_move);
 
     // TODO: Remove this later
     // for(int i=0;i<8;i++){
