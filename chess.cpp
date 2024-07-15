@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -147,6 +148,48 @@ void parse_fen_string_to_board(string &fen_position){
 
 }
 
+// Encode Moves to Integers
+// source_square -> 7 bits
+// target_square -> 7 bits
+// promoted_piece -> 4 bits
+// capture_flag -> 1 bit
+// enpassant_flag -> 1 bit
+// castling_flag -> 1 bit
+// doublepawnmove_flag -> 1 bit
+int encode_move_to_integer(int source_square, int target_square, int promoted_piece, int capture_flag, int enpassant_flag, int castling_flag, int doublepawnmove_flag){
+    return (source_square | (target_square << 7) | (promoted_piece << 14) | (capture_flag << 18) | (enpassant_flag << 19) | (castling_flag << 20) | (doublepawnmove_flag << 21));
+}
+
+// Decoding Integer to Move & Flags
+int source_square(int move){
+    return move & 0x7F;
+}
+
+int target_square(int move){
+    return (move >> 7) & 0x7F;
+}
+
+int promoted_piece(int move){
+    return (move >> 14) & 0xF;
+}
+
+int capture_flag(int move){
+    return (move >> 18) & 1;
+}
+
+int enpassant_flag(int move){
+    return (move >> 19) & 1;
+}
+
+int castling_flag(int move){
+    return (move >> 20) & 1;
+}
+
+int doublepawnmove_flag(int move){
+    return (move >> 21) & 1;
+}
+
+
 // Print Chess Board
 void print_chess_board(){
     for(int i=0;i<8;i++){
@@ -182,6 +225,43 @@ void clear_board(){
     side_to_move = -1;
     castle = 0;
 }
+
+// Moves History
+class Moves{
+    private:
+        vector<int> moves;
+        int count;
+    public:
+        Moves(){
+            count = 0;
+        }
+        void add_move(int move){
+            moves.push_back(move);
+            count++;
+        }
+        void undo_move(){
+            moves.pop_back();
+            count--;
+        }
+        void print_all_moves(){
+            cout<<"\n\nPrinting Moves History\n\n";
+            for(int i=0;i<moves.size();i++){
+                int move = moves[i];
+                int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
+
+                if(capture) cout << index_to_position[source_square(move)/16][source_square(move)%16] << " takes " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
+                else cout << index_to_position[source_square(move)/16][source_square(move)%16] << " -> " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
+
+                if(promoted) cout << ascii_pieces[promoted_piece(move)];
+                if(castling) cout << "Castling";
+                if(enpassant) cout << "Enpassant";
+                if(doublepawnmove) cout << "Double Pawn Move";
+
+                cout<<"\n";
+            }
+            cout << endl;
+        }
+}moves_history, possible_moves;
 
 // Check if square is attacked
 bool is_square_attacked(int i, int j, int side){
@@ -278,49 +358,49 @@ void generate_moves(int side){
                 if(valid_move(i-1,j) && chess_board[i-1][j] == e){
                     // Promotion
                     if(i == 1){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " Q" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " R" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " B" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << " N" << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j,Q,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j,R,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j,B,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j,N,0,0,0,0));
                     }
                     // Normal Move
                     else{
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i-1][j] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j,0,0,0,0,0));
                     }
                 }
 
                 // Double Move
                 if(i == 6 && chess_board[i-1][j] == e && chess_board[i-2][j] == e){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[i-2][j] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-2)*16+j,0,0,0,0,1));
                 }
 
                 // Capture Move
                 // Normal Captures
                 if(i>1 && valid_move(i-1,j-1) && chess_board[i-1][j-1] >= p && chess_board[i-1][j-1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,0,1,0,0,0));
                 }
                 if(i>1 && valid_move(i-1,j+1) && chess_board[i-1][j+1] >= p && chess_board[i-1][j+1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,0,1,0,0,0));
                 }
                 // Capture En-passant
                 if(valid_move(i-1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " En-passant" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,0,0,1,0,0));
                 }
                 if(valid_move(i-1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " En-passant" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,0,0,1,0,0));
                 }
                 // Capture Promotion
                 if(i==1 && valid_move(i-1,j-1) && chess_board[i-1][j-1] >= p && chess_board[i-1][j-1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " Q" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " R" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " B" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j-1] << " N" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,Q,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,R,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,B,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,N,1,0,0,0));
                 }
                 if(i==1 && valid_move(i-1,j+1) && chess_board[i-1][j+1] >= p && chess_board[i-1][j+1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " Q" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " R" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " B" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i-1][j+1] << " N" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,Q,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,R,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,B,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,N,1,0,0,0));
                 }
             }
 
@@ -330,48 +410,49 @@ void generate_moves(int side){
                 if(valid_move(i+1,j) && chess_board[i+1][j] == e){
                     // Promotion
                     if(i == 6){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " q" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " r" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " b" << endl;
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << " n" << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,q,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,r,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,b,0,0,0,0));
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,n,0,0,0,0));
                     }
                     else{
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,0,0,0,0,0));
                         cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << endl;
                     }
                 }
 
                 // Double Move
                 if(i == 1 && chess_board[i+1][j] == e && chess_board[i+2][j] == e){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[i+2][j] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+2)*16+j,0,0,0,0,1));
                 }
 
                 // Capture Move
                 // Normal Captures
                 if(i<6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= P && chess_board[i+1][j-1] <= K){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,0,1,0,0,0));
                 }
                 if(i<6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= P && chess_board[i+1][j+1] <= K){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,1,0,0,0));
                 }
                 // Capture En-passant
                 if(valid_move(i+1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " En-passant" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,0,0,1,0,0));
                 }
                 if(valid_move(i+1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " En-passant" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,0,1,0,0));
                 }
                 // Capture Promotion
                 if(i==6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= p && chess_board[i+1][j-1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " q" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " r" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " b" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j-1] << " n" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,q,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,r,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,b,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,n,1,0,0,0));
                 }
                 if(i==6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= p && chess_board[i+1][j+1] <= k){
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " q" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " r" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " b" << endl;
-                    cout << index_to_position[i][j] << " takes " << index_to_position[i+1][j+1] << " n" << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,q,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,r,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,b,1,0,0,0));
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,n,1,0,0,0));
                 }
             }
 
@@ -383,11 +464,11 @@ void generate_moves(int side){
                 
                 // King Side Castling
                 if((castle & Kc) && chess_board[7][5] == e && chess_board[7][6] == e && !is_square_attacked(7,4,!side) && !is_square_attacked(7,5,!side) && !is_square_attacked(7,6,!side)){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[7][6] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,7*16+6,0,0,0,1,0));
                 }
                 // Queen Side Castling
                 if((castle & Qc) && chess_board[7][1] == e && chess_board[7][2] == e && chess_board[7][3] == e && !is_square_attacked(7,4,!side) && !is_square_attacked(7,3,!side) && !is_square_attacked(7,2,!side)){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[7][2] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,7*16+2,0,0,0,1,0));
                 }
                 // Non-Castling King Moves
                 for(int ind=0;ind<8;ind++){
@@ -396,11 +477,11 @@ void generate_moves(int side){
 
                     // Normal Moves
                     if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] == e){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                     }
                     // Capture Moves
                     if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
-                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                     }
                 }
             }
@@ -409,11 +490,11 @@ void generate_moves(int side){
             else if(side && chess_board[i][j] == k){
                 // King Side Castling
                 if((castle & kc) && chess_board[0][5] == e && chess_board[0][6] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,5,side) && !is_square_attacked(0,6,side)){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[0][6] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,6,0,0,0,1,0));
                 }
                 // Queen Side Castling
                 if((castle & qc) && chess_board[0][1] == e && chess_board[0][2] == e && chess_board[0][3] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,3,side) && !is_square_attacked(0,2,side)){
-                    cout << index_to_position[i][j] << " -> " << index_to_position[0][2] << endl;
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,2,0,0,0,1,0));
                 }
                 // Non-Castling King Moves
                 for(int ind=0;ind<8;ind++){
@@ -422,11 +503,11 @@ void generate_moves(int side){
 
                     // Normal Moves
                     if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] == e){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                     }
                     // Capture Moves
                     if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
-                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                     }
                 }
             }
@@ -439,11 +520,11 @@ void generate_moves(int side){
 
                     // Normal Moves
                     if(valid_move(tarx,tary) && chess_board[tarx][tary] == e){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                     }
                     // Capture Moves
                     if(valid_move(tarx,tary) && chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
-                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                     }
                 }
             }
@@ -456,11 +537,11 @@ void generate_moves(int side){
 
                     // Normal Moves
                     if(valid_move(tarx,tary) && chess_board[tarx][tary] == e){
-                        cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                     }
                     // Capture Moves
                     if(valid_move(tarx,tary) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
-                        cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                        possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                     }
                 }
             }
@@ -473,11 +554,11 @@ void generate_moves(int side){
                     while(valid_move(tarx,tary)){
                         // Normal Moves
                         if(chess_board[tarx][tary] == e){
-                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                         }
                         // Capture Moves
                         if(chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
-                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                             break;
                         }
                         // Break if any there is any chess piece in between
@@ -497,11 +578,11 @@ void generate_moves(int side){
                     while(valid_move(tarx,tary)){
                         // Normal Moves
                         if(chess_board[tarx][tary] == e){
-                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                         }
                         // Capture Moves
                         if(chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
-                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                             break;
                         }
                         // Break if any there is any chess piece in between
@@ -521,11 +602,11 @@ void generate_moves(int side){
                     while(valid_move(tarx,tary)){
                         // Normal Moves
                         if(chess_board[tarx][tary] == e){
-                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                         }
                         // Capture Moves
                         if(chess_board[tarx][tary] >= p && chess_board[tarx][tary] <= k){
-                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                             break;
                         }
                         // Break if any there is any chess piece in between
@@ -545,11 +626,11 @@ void generate_moves(int side){
                     while(valid_move(tarx,tary)){
                         // Normal Moves
                         if(chess_board[tarx][tary] == e){
-                            cout << index_to_position[i][j] << " -> " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                         }
                         // Capture Moves
                         if(chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
-                            cout << index_to_position[i][j] << " takes " << index_to_position[tarx][tary] << endl;
+                            possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                             break;
                         }
                         // Break if any there is any chess piece in between
@@ -565,6 +646,8 @@ void generate_moves(int side){
     }
 }
 
+// TODO: Encoding & Decoding chess moves as integers
+
 string test_position = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
 
 int main() {
@@ -578,6 +661,9 @@ int main() {
     print_chess_board();
     // print_attacked_squares(side_to_move);
     generate_moves(side_to_move);
+    possible_moves.print_all_moves();
+    // moves_history.add_move(encode_move_to_integer(a2,a4,0,0,0,0,1));
+    // moves_history.print_all_moves();
 
     // TODO: Remove this later
     // for(int i=0;i<8;i++){
