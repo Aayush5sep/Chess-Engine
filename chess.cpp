@@ -73,6 +73,29 @@ string index_to_position[8][8] = {
 //          q k Q K
 enum castling {Kc = 1, Qc = 2, kc = 4, qc = 8};
 
+// Castling rights
+// Logic - all castling rights = 15
+// If white king moves, then castling rights -> 1100 = 12
+// If white king side rook moves, then castling rights -> 1110 = 14
+// If white queen side rook moves, then castling rights -> 1101 = 13
+// If black king moves, then castling rights -> 0011 = 3
+// If black king side rook moves, then castling rights -> 1011 = 11
+// If black queen side rook moves, then castling rights -> 0111 = 7
+// So if source or destination square is among the king or rook starting square, then AND operation does the work
+int castling_rights[8][16] = {
+    {7, 15, 15, 15, 3, 15, 15, 11,      0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {15, 15, 15, 15, 15, 15, 15, 15,    0, 0, 0, 0, 0, 0, 0, 0},
+    {13, 15, 15, 15, 12, 15, 15, 14,    0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+// King Squares White, Black
+int king_track[2] = {e1, e8};
+
 // 0 -> white, 1 -> black
 int side_to_move = 0;
 
@@ -247,21 +270,21 @@ class Moves{
             cout<<"\n\nPrinting Moves History\n\n";
             for(int i=0;i<moves.size();i++){
                 int move = moves[i];
-                int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
+                int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant_capture = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
 
                 if(capture) cout << index_to_position[source_square(move)/16][source_square(move)%16] << " takes " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
                 else cout << index_to_position[source_square(move)/16][source_square(move)%16] << " -> " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
 
                 if(promoted) cout << ascii_pieces[promoted_piece(move)];
                 if(castling) cout << "Castling";
-                if(enpassant) cout << "Enpassant";
+                if(enpassant_capture) cout << "Enpassant";
                 if(doublepawnmove) cout << "Double Pawn Move";
 
                 cout<<"\n";
             }
             cout << endl;
         }
-}moves_history, possible_moves;
+}moves_history;
 
 // Check if square is attacked
 bool is_square_attacked(int i, int j, int side){
@@ -347,8 +370,82 @@ void print_attacked_squares(int side){
     cout << "\n   a b c d e f g h \n" << endl;
 }
 
+bool set_move(int move){
+    // Make Board Copy
+    int chess_board_copy[8][16];
+    copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
+    int castle_copy = castle;
+    int enpassant_copy = enpassant;
+    int king_track_copy[2];
+    copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
+
+
+    // Decode Integer into moves
+    int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant_capture = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
+
+    // Update Moved Piece on Chess Board
+    chess_board[target/16][target%16] = chess_board[source/16][source%16];
+    chess_board[source/16][source%16] = e;
+
+    // Handle enpassant captures
+    if(enpassant_capture){
+        if(side_to_move == 0) chess_board[target/16 - 1][target%16] = e;
+        else chess_board[target/16 + 1][target%16] = e;
+    }
+    // Reset enpassant_square
+    enpassant = no_sq;
+
+    // Add enpassant square in case of double move
+    if(doublepawnmove){
+        if(side_to_move == 0) enpassant = target + 16;
+        else enpassant_capture = target - 16;
+    }
+
+    // Castling Move
+    if(castling){
+        if(side_to_move == 0){
+            if(target == 7*16+6){   // g1
+                chess_board[7][5] = R;
+                chess_board[7][7] = e;
+            }
+            else if(target == 7*16+2){  // c1
+                chess_board[7][3] = R;
+                chess_board[7][0] = e;
+            }
+        }
+        else{
+            if(target == 0*16+6){   // g8
+                chess_board[0][5] = r;
+                chess_board[0][7] = e;
+            }
+            else if(target == 0*16+2){  // c8
+                chess_board[0][3] = r;
+                chess_board[0][0] = e;
+            }
+        }
+    }
+
+    // Update Castling Rights
+    castle = castle & castling_rights[source/16][source%16] & castling_rights[target/16][target%16];
+
+    // Check Legal Move
+    // Check if after move for a side, the same side king is not in check then
+    if((!side_to_move && is_square_attacked(king_track[0]/16,king_track[0]%16,1)) || (side_to_move && is_square_attacked(king_track[1]/16,king_track[1]%16,0))){
+        // Reset values
+        copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+        castle = castle_copy;
+        enpassant = enpassant_copy;
+        copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        return false;
+    }
+
+    // Update Side to Move
+    side_to_move = !side_to_move;
+    return true;
+}
+
 // Generate Moves
-void generate_moves(int side){
+void generate_moves(int side, Moves &possible_moves){
     for(int i=0;i<8;i++){
         for(int j=0;j<8;j++){
 
@@ -642,6 +739,10 @@ void generate_moves(int side){
                 }
             }
 
+            // Update king square
+            if(chess_board[i][j] == K) king_track[0] = i*16+j;
+            if(chess_board[i][j] == k) king_track[1] = i*16+j;
+
         }
     }
 }
@@ -660,7 +761,8 @@ int main() {
     parse_fen_string_to_board(random_position);
     print_chess_board();
     // print_attacked_squares(side_to_move);
-    generate_moves(side_to_move);
+    Moves possible_moves;
+    generate_moves(side_to_move, possible_moves);
     possible_moves.print_all_moves();
     // moves_history.add_move(encode_move_to_integer(a2,a4,0,0,0,0,1));
     // moves_history.print_all_moves();
