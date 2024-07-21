@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <limits.h>
 
 using namespace std;
 
@@ -324,6 +325,18 @@ int doublepawnmove_flag(int move){
     return (move >> 21) & 1;
 }
 
+void print_decoded_move(int move){
+    int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant_capture = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
+
+    if(capture) cout << index_to_position[source_square(move)/16][source_square(move)%16] << " takes " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
+    else cout << index_to_position[source_square(move)/16][source_square(move)%16] << " -> " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
+
+    if(promoted) cout << ascii_pieces[promoted_piece(move)];
+    if(castling) cout << "Castling";
+    if(enpassant_capture) cout << "Enpassant";
+    if(doublepawnmove) cout << "Double Pawn Move";
+}
+
 
 // Print Chess Board
 void print_chess_board(){
@@ -370,6 +383,9 @@ class Moves{
         Moves(){
             count = 0;
         }
+        int get_count(){
+            return count;
+        }
         void add_move(int move){
             moves.push_back(move);
             count++;
@@ -378,20 +394,14 @@ class Moves{
             moves.pop_back();
             count--;
         }
+        vector<int> get_all_moves(){
+            return moves;
+        }
         void print_all_moves(){
             cout<<"\n\nPrinting Moves History\n\n";
             for(int i=0;i<moves.size();i++){
                 int move = moves[i];
-                int source = source_square(move), target = target_square(move), promoted = promoted_piece(move), capture = capture_flag(move), enpassant_capture = enpassant_flag(move), castling = castling_flag(move), doublepawnmove = doublepawnmove_flag(move);
-
-                if(capture) cout << index_to_position[source_square(move)/16][source_square(move)%16] << " takes " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
-                else cout << index_to_position[source_square(move)/16][source_square(move)%16] << " -> " << index_to_position[target_square(move)/16][target_square(move)%16]<<" ";
-
-                if(promoted) cout << ascii_pieces[promoted_piece(move)];
-                if(castling) cout << "Castling";
-                if(enpassant_capture) cout << "Enpassant";
-                if(doublepawnmove) cout << "Double Pawn Move";
-
+                print_decoded_move(move);
                 cout<<"\n";
             }
             cout << endl;
@@ -497,13 +507,14 @@ int evaluate_position(){
 }
 
 bool set_move(int move){
+    // Being handled in find_best_move now
     // Make Board Copy
-    int chess_board_copy[8][16];
-    copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
-    int castle_copy = castle;
-    int enpassant_copy = enpassant;
-    int king_track_copy[2];
-    copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
+    // int chess_board_copy[8][16];
+    // copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
+    // int castle_copy = castle;
+    // int enpassant_copy = enpassant;
+    // int king_track_copy[2];
+    // copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
 
 
     // Decode Integer into moves
@@ -513,18 +524,30 @@ bool set_move(int move){
     chess_board[target/16][target%16] = chess_board[source/16][source%16];
     chess_board[source/16][source%16] = e;
 
+    if(promoted > 0){
+        chess_board[target/16][target%16] = promoted;
+    }
+
     // Handle enpassant captures
     if(enpassant_capture){
-        if(side_to_move == 0) chess_board[target/16 - 1][target%16] = e;
-        else chess_board[target/16 + 1][target%16] = e;
+        if(side_to_move == 0){
+            chess_board[target/16 + 1][target%16] = e;
+        }
+        else{
+            chess_board[target/16 - 1][target%16] = e;
+        }
     }
     // Reset enpassant_square
     enpassant = no_sq;
 
     // Add enpassant square in case of double move
     if(doublepawnmove){
-        if(side_to_move == 0) enpassant = target + 16;
-        else enpassant_capture = target - 16;
+        if(side_to_move == 0){
+            enpassant = target + 16;
+        }
+        else{
+            enpassant = target - 16;
+        }
     }
 
     // Castling Move
@@ -554,19 +577,24 @@ bool set_move(int move){
     // Update Castling Rights
     castle = castle & castling_rights[source/16][source%16] & castling_rights[target/16][target%16];
 
+    // Update king square
+    if(chess_board[target/16][target%16] == K || chess_board[target/16][target%16] == k) king_track[side_to_move] = target;
+
     // Check Legal Move
     // Check if after move for a side, the same side king is not in check then
-    if((!side_to_move && is_square_attacked(king_track[0]/16,king_track[0]%16,1)) || (side_to_move && is_square_attacked(king_track[1]/16,king_track[1]%16,0))){
+    if(is_square_attacked(king_track[side_to_move]/16,king_track[side_to_move]%16,!side_to_move)){
         // Reset values
-        copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
-        castle = castle_copy;
-        enpassant = enpassant_copy;
-        copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        // Being handled in find_best_move now
+        // copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+        // castle = castle_copy;
+        // enpassant = enpassant_copy;
+        // copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
         return false;
     }
 
     // Update Side to Move
-    side_to_move = !side_to_move;
+    // Being handled in find_best_move now
+    // side_to_move = !side_to_move;
     return true;
 }
 
@@ -606,11 +634,11 @@ void generate_moves(int side, Moves &possible_moves){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,0,1,0,0,0));
                 }
                 // Capture En-passant
-                if(valid_move(i-1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
-                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,0,0,1,0,0));
+                if(valid_move(i-1,j-1) && chess_board[i][j-1] == p && enpassant == (i-1)*16+j-1){
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j-1,0,1,1,0,0));
                 }
-                if(valid_move(i-1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
-                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,0,0,1,0,0));
+                if(valid_move(i-1,j+1) && chess_board[i][j+1] == p && enpassant == (i-1)*16+j+1){
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i-1)*16+j+1,0,1,1,0,0));
                 }
                 // Capture Promotion
                 if(i==1 && valid_move(i-1,j-1) && chess_board[i-1][j-1] >= p && chess_board[i-1][j-1] <= k){
@@ -640,7 +668,6 @@ void generate_moves(int side, Moves &possible_moves){
                     }
                     else{
                         possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j,0,0,0,0,0));
-                        cout << index_to_position[i][j] << " -> " << index_to_position[i+1][j] << endl;
                     }
                 }
 
@@ -658,11 +685,11 @@ void generate_moves(int side, Moves &possible_moves){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,1,0,0,0));
                 }
                 // Capture En-passant
-                if(valid_move(i+1,j-1) && chess_board[i][j-1] == p && enpassant == i*16+j-1){
-                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,0,0,1,0,0));
+                if(valid_move(i+1,j-1) && chess_board[i][j-1] == P && enpassant == (i+1)*16+j-1){
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,0,1,1,0,0));
                 }
-                if(valid_move(i+1,j+1) && chess_board[i][j+1] == p && enpassant == i*16+j+1){
-                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,0,1,0,0));
+                if(valid_move(i+1,j+1) && chess_board[i][j+1] == P && enpassant == (i+1)*16+j+1){
+                    possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,1,1,0,0));
                 }
                 // Capture Promotion
                 if(i==6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= p && chess_board[i+1][j-1] <= k){
@@ -712,11 +739,11 @@ void generate_moves(int side, Moves &possible_moves){
             // Black Side King Castling
             else if(side && chess_board[i][j] == k){
                 // King Side Castling
-                if((castle & kc) && chess_board[0][5] == e && chess_board[0][6] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,5,side) && !is_square_attacked(0,6,side)){
+                if((castle & kc) && chess_board[0][5] == e && chess_board[0][6] == e && !is_square_attacked(0,4,!side) && !is_square_attacked(0,5,!side) && !is_square_attacked(0,6,!side)){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,6,0,0,0,1,0));
                 }
                 // Queen Side Castling
-                if((castle & qc) && chess_board[0][1] == e && chess_board[0][2] == e && chess_board[0][3] == e && !is_square_attacked(0,4,side) && !is_square_attacked(0,3,side) && !is_square_attacked(0,2,side)){
+                if((castle & qc) && chess_board[0][1] == e && chess_board[0][2] == e && chess_board[0][3] == e && !is_square_attacked(0,4,!side) && !is_square_attacked(0,3,!side) && !is_square_attacked(0,2,!side)){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,2,0,0,0,1,0));
                 }
                 // Non-Castling King Moves
@@ -725,11 +752,11 @@ void generate_moves(int side, Moves &possible_moves){
                     int tary = j + king_moves[ind][1];
 
                     // Normal Moves
-                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] == e){
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] == e){
                         possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,0,0,0,0));
                     }
                     // Capture Moves
-                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,side) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
+                    if(valid_move(tarx,tary) && !is_square_attacked(tarx,tary,!side) && chess_board[tarx][tary] >= P && chess_board[tarx][tary] <= K){
                         possible_moves.add_move(encode_move_to_integer(i*16+j,tarx*16+tary,0,1,0,0,0));
                     }
                 }
@@ -873,9 +900,63 @@ void generate_moves(int side, Moves &possible_moves){
     }
 }
 
+
+// Performance Test by checking number of valid generated moves
+int nodes=0;
+void performance_test(int side, int depth){
+    if(depth == 0){
+        nodes++;
+        return;
+    }
+
+    Moves possible_moves;
+    generate_moves(side, possible_moves);
+
+    // if(depth == 1) cout<<possible_moves.get_count()<<endl;
+    // if(depth == 1) possible_moves.print_all_moves();
+
+    int chess_board_copy[8][16];
+    copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
+    int castle_copy = castle;
+    int enpassant_copy = enpassant;
+    side_to_move = side;
+    int king_track_copy[2];
+    copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
+
+    int count = possible_moves.get_count();
+    vector<int> moves = possible_moves.get_all_moves();
+
+    for(int i=0;i<count;i++){
+        if(!set_move(moves[i])){
+            copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+            castle = castle_copy;
+            enpassant = enpassant_copy;
+            side_to_move = side;
+            copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+            continue;
+        }
+        // if(depth == 2){
+        //     cout<<"\n\n";
+        //     print_decoded_move(moves[i]);
+        //     cout<<endl;
+        // }
+        // if(depth == 1){
+        //     print_decoded_move(moves[i]);
+        //     cout<<endl;
+        // }
+        
+        performance_test(!side, depth-1);
+        copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+        castle = castle_copy;
+        enpassant = enpassant_copy;
+        side_to_move = side;
+        copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+    }
+}
+
 // TODO: Encoding & Decoding chess moves as integers
 
-string test_position = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
+string test_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ";
 
 int main() {
     // Your code here
@@ -884,15 +965,26 @@ int main() {
     // chess_board[e4/16][e4%16] = P;
     
     clear_board();
-    parse_fen_string_to_board(random_position);
+    // parse_fen_string_to_board(random_position);
     // parse_fen_string_to_board(starting_position);
+    parse_fen_string_to_board(test_position);
     print_chess_board();
     // print_attacked_squares(side_to_move);
-    Moves possible_moves;
-    generate_moves(side_to_move, possible_moves);
-    possible_moves.print_all_moves();
+    // Moves possible_moves;
+    // generate_moves(side_to_move, possible_moves);
+    // possible_moves.print_all_moves();
 
-    cout << "\n Score: " << evaluate_position() << endl;
+    // cout << "\nScore: " << evaluate_position() << endl;
+
+    // int final_best_score = find_best_move(side_to_move, 5, INT_MIN, INT_MAX);
+    // cout << "\n\nBest Move: ";
+    // print_decoded_move(final_best_move);
+    // cout << "\n\nBest Score: " << final_best_score <<endl;
+
+    performance_test(0,5);
+    cout << "\n\nTotal Nodes: " << nodes << endl;
+
+
     // moves_history.add_move(encode_move_to_integer(a2,a4,0,0,0,0,1));
     // moves_history.print_all_moves();
 
