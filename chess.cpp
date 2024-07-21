@@ -692,13 +692,13 @@ void generate_moves(int side, Moves &possible_moves){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,0,1,1,0,0));
                 }
                 // Capture Promotion
-                if(i==6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= p && chess_board[i+1][j-1] <= k){
+                if(i==6 && valid_move(i+1,j-1) && chess_board[i+1][j-1] >= P && chess_board[i+1][j-1] <= K){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,q,1,0,0,0));
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,r,1,0,0,0));
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,b,1,0,0,0));
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j-1,n,1,0,0,0));
                 }
-                if(i==6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= p && chess_board[i+1][j+1] <= k){
+                if(i==6 && valid_move(i+1,j+1) && chess_board[i+1][j+1] >= P && chess_board[i+1][j+1] <= K){
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,q,1,0,0,0));
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,r,1,0,0,0));
                     possible_moves.add_move(encode_move_to_integer(i*16+j,(i+1)*16+j+1,b,1,0,0,0));
@@ -900,9 +900,11 @@ void generate_moves(int side, Moves &possible_moves){
     }
 }
 
-
 // Performance Test by checking number of valid generated moves
 int nodes=0;
+// int captures=0;
+// int castles=0;
+// int promotions=0;
 void performance_test(int side, int depth){
     if(depth == 0){
         nodes++;
@@ -944,6 +946,12 @@ void performance_test(int side, int depth){
         //     print_decoded_move(moves[i]);
         //     cout<<endl;
         // }
+        // if(capture_flag(moves[i])) captures++;
+        // if(castling_flag(moves[i])) castles++;
+        // if(promoted_piece(moves[i]) > 0) promotions++;
+
+        // getchar();
+        // print_chess_board();
         
         performance_test(!side, depth-1);
         copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
@@ -956,7 +964,7 @@ void performance_test(int side, int depth){
 
 // TODO: Encoding & Decoding chess moves as integers
 
-string test_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ";
+string test_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ";
 
 int main() {
     // Your code here
@@ -983,6 +991,9 @@ int main() {
 
     performance_test(0,5);
     cout << "\n\nTotal Nodes: " << nodes << endl;
+    // cout << "Total Captures: " << captures << endl;
+    // cout << "Total Castles: " << castles << endl;
+    // cout << "Total Promotions: " << promotions << endl;
 
 
     // moves_history.add_move(encode_move_to_integer(a2,a4,0,0,0,0,1));
