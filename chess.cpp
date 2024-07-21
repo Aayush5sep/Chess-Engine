@@ -900,6 +900,147 @@ void generate_moves(int side, Moves &possible_moves){
     }
 }
 
+
+// Best final Move stored globally
+int final_best_move = -1;
+// Recursion Logic to find best move
+int find_best_move(int side, int depth, int alpha, int beta){
+    if(depth == 0) return evaluate_position();
+
+    Moves possible_moves;
+    generate_moves(side, possible_moves);
+
+    // Keep an original board copy
+    int chess_board_copy[8][16];
+    copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
+    int castle_copy = castle;
+    int enpassant_copy = enpassant;
+    side_to_move = side;
+    int king_track_copy[2];
+    copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
+
+    if(!side){ // White to move
+        int best_score = INT_MIN;
+        int best_move = -1;
+        int legal_moves = 0;
+
+        int count = possible_moves.get_count();
+        vector<int> moves = possible_moves.get_all_moves();
+
+        for(int i=0;i<count;i++){
+            // Check legal move & also sets the move if legal
+            if(!set_move(moves[i])){
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                continue;
+            }
+            legal_moves++;
+
+            // Find best move for the other side and thus the evaluation
+            int score = find_best_move(!side, depth-1, alpha, beta);
+            // Currently found a better move, then set it as best move
+            if(score > best_score){
+                best_score = score;
+                best_move = moves[i];
+            }
+
+            // Alpha Beta Pruning
+            alpha = max(alpha, best_score);
+            if(alpha >= beta){
+                // Reset board to original state for next possible move evaluation
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                break;
+            }
+
+            // Reset board to original state for next possible move evaluation
+            copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+            castle = castle_copy;
+            enpassant = enpassant_copy;
+            side_to_move = side;
+            copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        }
+
+        if(legal_moves == 0){
+            if(is_square_attacked(king_track[0]/16,king_track[0]%16,!side)){
+                return -100000 - depth; // Doing it to find quickest mate, else something weird happens and it sometimes find mate in more moves
+            }
+            else{
+                return 0;
+            }
+        }
+
+        final_best_move = best_move;
+        return best_score;
+    }
+    else{ // Black to move
+        int best_score = INT_MAX;
+        int best_move = -1;
+        int legal_moves = 0;
+
+        int count = possible_moves.get_count();
+        vector<int> moves = possible_moves.get_all_moves();
+
+        for(int i=0;i<count;i++){
+            // Check legal move & also sets the move if legal
+            if(!set_move(moves[i])){
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                continue;
+            }
+            legal_moves++;
+
+            // Find best move for the other side and thus the evaluation
+            int score = find_best_move(!side, depth-1, alpha, beta);
+            // Currently found a better move, then set it as best move
+            if(score < best_score){
+                best_score = score;
+                best_move = moves[i];
+            }
+
+            // Alpha Beta Pruning
+            beta = min(beta, best_score);
+            if(alpha >= beta){
+                // Reset board to original state for next possible move evaluation
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                break;
+            }
+
+            // Reset board to original state for next possible move evaluation
+            copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+            castle = castle_copy;
+            enpassant = enpassant_copy;
+            side_to_move = side;
+            copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        }
+
+        if(legal_moves == 0){
+            if(is_square_attacked(king_track[1]/16,king_track[1]%16,!side)){
+                return 100000 + depth;
+            }
+            else{
+                return 0;
+            }
+        }
+
+        final_best_move = best_move;
+        return best_score;
+    }
+}
+
 // Performance Test by checking number of valid generated moves
 int nodes=0;
 // int captures=0;
@@ -950,8 +1091,8 @@ void performance_test(int side, int depth){
         // if(castling_flag(moves[i])) castles++;
         // if(promoted_piece(moves[i]) > 0) promotions++;
 
-        // getchar();
-        // print_chess_board();
+        getchar();
+        print_chess_board();
         
         performance_test(!side, depth-1);
         copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
@@ -965,6 +1106,7 @@ void performance_test(int side, int depth){
 // TODO: Encoding & Decoding chess moves as integers
 
 string test_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ";
+// string mate_position = "3k4/5Q2/8/4Q3/2K5/8/8/8 w - - ";
 
 int main() {
     // Your code here
@@ -976,6 +1118,7 @@ int main() {
     // parse_fen_string_to_board(random_position);
     // parse_fen_string_to_board(starting_position);
     parse_fen_string_to_board(test_position);
+    // parse_fen_string_to_board(mate_position);
     print_chess_board();
     // print_attacked_squares(side_to_move);
     // Moves possible_moves;
@@ -984,13 +1127,13 @@ int main() {
 
     // cout << "\nScore: " << evaluate_position() << endl;
 
-    // int final_best_score = find_best_move(side_to_move, 5, INT_MIN, INT_MAX);
-    // cout << "\n\nBest Move: ";
-    // print_decoded_move(final_best_move);
-    // cout << "\n\nBest Score: " << final_best_score <<endl;
+    int final_best_score = find_best_move(side_to_move, 5, INT_MIN, INT_MAX);
+    cout << "\n\nBest Move: ";
+    print_decoded_move(final_best_move);
+    cout << "\n\nBest Score: " << final_best_score <<endl;
 
-    performance_test(0,5);
-    cout << "\n\nTotal Nodes: " << nodes << endl;
+    // performance_test(0,2);
+    // cout << "\n\nTotal Nodes: " << nodes << endl;
     // cout << "Total Captures: " << captures << endl;
     // cout << "Total Castles: " << castles << endl;
     // cout << "Total Promotions: " << promotions << endl;
