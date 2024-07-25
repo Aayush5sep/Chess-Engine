@@ -113,7 +113,7 @@ int rook_offsets[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
 int king_moves[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
 
 // Piece Valuation
-int piece_value[14] = {0, 0, 100, 300, 300, 500, 900, 100000, -100, -300, -300, -500, -900, -100000}; // usual piece value times 100
+int piece_value[14] = {0, 0, 100, 350, 325, 500, 900, 100000, -100, -350, -325, -500, -900, -100000}; // usual piece value times 100
 
 // Positional Valuation {o, e, P, B, N, R, Q, K, p, b, n, r, q, k}
 // Opening positional values picked from Chess Programming Wiki
@@ -900,11 +900,99 @@ void generate_moves(int side, Moves &possible_moves){
     }
 }
 
+// Quiescence Search
+int quiescence_search(int side, int depth, int alpha, int beta){
+    int eval = evaluate_position();
+    if(depth == 0) return eval;
+
+    Moves possible_moves;
+    generate_moves(side, possible_moves);
+
+    // Keep an original board copy
+    int chess_board_copy[8][16];
+    copy(&chess_board[0][0], &chess_board[0][0] + 8*16, &chess_board_copy[0][0]);
+    int castle_copy = castle;
+    int enpassant_copy = enpassant;
+    side_to_move = side;
+    int king_track_copy[2];
+    copy(&king_track[0], &king_track[0] + 2, &king_track_copy[0]);
+
+    if(!side){ // White to move
+        int best_score = eval;
+
+        int count = possible_moves.get_count();
+        vector<int> moves = possible_moves.get_all_moves();
+
+        for(int i=0;i<count;i++){
+            // Check legal move & also sets the move if legal
+            if(!capture_flag(moves[i]) || !set_move(moves[i])){
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                continue;
+            }
+
+            // Find best move for the other side and thus the evaluation
+            int score = quiescence_search(!side, depth-1, alpha, beta);
+            // Currently found a better move, then set it as best move
+            if(score > best_score){
+                best_score = score;
+            }
+
+            // Reset board to original state for next possible move evaluation
+            copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+            castle = castle_copy;
+            enpassant = enpassant_copy;
+            side_to_move = side;
+            copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        }
+
+        return best_score;
+    }
+    else{ // Black to move
+        int best_score = eval;
+
+        int count = possible_moves.get_count();
+        vector<int> moves = possible_moves.get_all_moves();
+
+        for(int i=0;i<count;i++){
+            // Check legal move & also sets the move if legal
+            if(!capture_flag(moves[i]) || !set_move(moves[i])){
+                copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+                castle = castle_copy;
+                enpassant = enpassant_copy;
+                side_to_move = side;
+                copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+                continue;
+            }
+
+            // Find best move for the other side and thus the evaluation
+            int score = quiescence_search(!side, depth-1, alpha, beta);
+            // Currently found a better move, then set it as best move
+            if(score < best_score){
+                best_score = score;
+            }
+
+            // Reset board to original state for next possible move evaluation
+            copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
+            castle = castle_copy;
+            enpassant = enpassant_copy;
+            side_to_move = side;
+            copy(&king_track_copy[0], &king_track_copy[0] + 2, &king_track[0]);
+        }
+
+        return best_score;
+    }
+}
+
 
 // Best final Move stored globally
 int final_best_move = -1;
 // Recursion Logic to find best move
 int find_best_move(int side, int depth, int alpha, int beta){
+    // if(depth == 0) return quiescence_search(side, 3, alpha, beta);
     if(depth == 0) return evaluate_position();
 
     Moves possible_moves;
@@ -1091,8 +1179,8 @@ void performance_test(int side, int depth){
         // if(castling_flag(moves[i])) castles++;
         // if(promoted_piece(moves[i]) > 0) promotions++;
 
-        getchar();
-        print_chess_board();
+        // getchar();
+        // print_chess_board();
         
         performance_test(!side, depth-1);
         copy(&chess_board_copy[0][0], &chess_board_copy[0][0] + 8*16, &chess_board[0][0]);
@@ -1132,7 +1220,7 @@ int main() {
     print_decoded_move(final_best_move);
     cout << "\n\nBest Score: " << final_best_score <<endl;
 
-    // performance_test(0,2);
+    // performance_test(0,5);
     // cout << "\n\nTotal Nodes: " << nodes << endl;
     // cout << "Total Captures: " << captures << endl;
     // cout << "Total Castles: " << castles << endl;
